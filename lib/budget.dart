@@ -7,37 +7,6 @@ import 'package:smartspend/ui/smart_spend_theme.dart';
 // ❗️ UPDATE THIS IMPORT to match your project
 import 'package:smartspend/services/firestore_service.dart';
 
-// --- 🔽 NEW: This map is now needed here too ---
-// This ensures your icons are consistent everywhere.
-final Map<String, IconData> iconMap = {
-  'restaurant': Icons.restaurant,
-  'directions_car': Icons.directions_car,
-  'movie': Icons.movie,
-  'child_care': Icons.child_care,
-  'face': Icons.face,
-  'receipt': Icons.receipt,
-  'directions_car_filled': Icons.directions_car_filled,
-  'checkroom': Icons.checkroom,
-  'school': Icons.school,
-  'devices': Icons.devices,
-  'emoji_events': Icons.emoji_events,
-  'local_offer': Icons.local_offer,
-  'confirmation_number': Icons.confirmation_number,
-  'replay': Icons.replay,
-  'house': Icons.house,
-  'work': Icons.work,
-  'trending_up': Icons.trending_up,
-  'health': Icons.favorite,
-  'home': Icons.home,
-  'insurance': Icons.shield,
-  'shopping': Icons.shopping_cart,
-  'social': Icons.people,
-  'sport': Icons.sports_tennis,
-  'tax': Icons.account_balance,
-  'telephone': Icons.phone,
-  'category': Icons.category,
-};
-
 class BudgetScreen extends StatefulWidget {
   final ScrollController? scrollController;
 
@@ -50,6 +19,54 @@ class BudgetScreen extends StatefulWidget {
 class _BudgetScreenState extends State<BudgetScreen> {
   final user = FirebaseAuth.instance.currentUser;
   final FirestoreService _firestoreService = FirestoreService();
+  final TransactionSummaryService _summaryService =
+      TransactionSummaryService();
+
+  DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
+
+  String get _formattedMonthYear => DateFormat('MMMM, yyyy').format(_selectedMonth);
+
+  Stream<List<AppTransaction>> _transactionsForSelectedMonth() {
+    return _summaryService.transactionsForMonth(
+      uid: user!.uid,
+      month: _selectedMonth,
+    );
+  }
+
+  Stream<double> _budgetTotalStream() {
+    final monthKey =
+        "${_selectedMonth.year}-${_selectedMonth.month.toString().padLeft(2, '0')}";
+    return FirebaseFirestore.instance
+        .collection('budgets')
+        .where('uid', isEqualTo: user!.uid)
+        .where('month', isEqualTo: monthKey)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.fold<double>(
+              0,
+              (sum, doc) =>
+                  sum + ((doc.data()['limit'] as num?)?.toDouble() ?? 0.0),
+            ));
+  }
+
+  void _goToPreviousMonth() {
+    setState(() {
+      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1);
+    });
+  }
+
+  void _goToNextMonth() {
+    setState(() {
+      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1);
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (user != null) {
+      _firestoreService.ensureDefaultCategories(uid: user!.uid);
+    }
+  }
 
   DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
 
@@ -237,7 +254,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
     // Read the 'icon' string from the document
     final iconString = categoryData['icon'] ?? 'category';
     // Look up the IconData from our map
-    final iconData = iconMap[iconString] ?? Icons.category;
+    final iconData = categoryIconMap[iconString] ?? Icons.category;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),

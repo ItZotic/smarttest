@@ -1,5 +1,6 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
@@ -7,10 +8,17 @@ import 'package:smartspend/ui/smart_spend_theme.dart';
 
 import 'add_transaction.dart';
 
-class AnalyticsScreen extends StatelessWidget {
+class AnalyticsScreen extends StatefulWidget {
   final ScrollController? scrollController;
 
   const AnalyticsScreen({super.key, this.scrollController});
+
+  @override
+  State<AnalyticsScreen> createState() => _AnalyticsScreenState();
+}
+
+class _AnalyticsScreenState extends State<AnalyticsScreen> {
+  final TransactionSummaryService _summaryService = TransactionSummaryService();
 
   @override
   Widget build(BuildContext context) {
@@ -19,10 +27,15 @@ class AnalyticsScreen extends StatelessWidget {
       return const Scaffold(body: Center(child: Text('Please log in')));
     }
 
-    final stream = FirebaseFirestore.instance
-        .collection('transactions')
-        .where('userId', isEqualTo: user.uid)
-        .snapshots();
+    final now = DateTime.now();
+    final startWindow = DateTime(now.year, now.month - 5, 1);
+    final endWindow = DateTime(now.year, now.month + 1, 1);
+
+    final stream = _summaryService.transactionsStream(
+      uid: user.uid,
+      start: startWindow,
+      end: endWindow,
+    );
 
     return Scaffold(
       backgroundColor: lightBgBottom,
@@ -38,7 +51,7 @@ class AnalyticsScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: StreamBuilder<QuerySnapshot>(
+      body: StreamBuilder<List<AppTransaction>>(
         stream: stream,
         builder: (context, snap) {
           if (!snap.hasData) {
@@ -53,31 +66,84 @@ class AnalyticsScreen extends StatelessWidget {
           final now = DateTime.now();
           final Map<String, double> monthTotals = {};
 
-          for (final doc in docs) {
-            final data = doc.data()! as Map<String, dynamic>;
-            final amount = (data['amount'] as num?)?.toDouble() ?? 0;
-            final category = data['category'] ?? 'Other';
-            categoryTotals[category] = (categoryTotals[category] ?? 0) + amount;
-            if (amount > 0) {
-              income += amount;
-            } else {
-              expenses += amount.abs();
-            }
+          final expenseBreakdown =
+              _summaryService.expenseTotalsByCategory(monthTransactions);
+          final palette = [
+            primaryBlue,
+            Colors.pinkAccent,
+            Colors.amber.shade700,
+            Colors.teal,
+            Colors.deepPurpleAccent,
+            Colors.green.shade600,
+          ];
+          final pieSections = <PieChartSectionData>[];
+          final legendEntries = <Widget>[];
+          int colorIndex = 0;
+          expenseBreakdown.forEach((category, value) {
+            final color = palette[colorIndex % palette.length];
+            colorIndex++;
+            pieSections.add(
+              PieChartSectionData(
+                value: value,
+                color: color,
+                radius: 50,
+                title: '',
+              ),
+            );
+            legendEntries.add(
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '$category: ${_summaryService.formatCurrency(value)}',
+                        style: const TextStyle(
+                          color: navy,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          });
 
-            final ts = data['createdAt'];
-            DateTime dt = now;
-            if (ts is Timestamp) {
-              dt = ts.toDate();
-            }
-            final key = '${dt.year}-${dt.month.toString().padLeft(2, '0')}';
-            monthTotals[key] = (monthTotals[key] ?? 0) + amount;
+          final monthLabels = List.generate(6, (index) {
+            return DateTime(now.year, now.month - (5 - index), 1);
+          });
+          final netByMonth = <String, double>{};
+          for (final txn in transactions) {
+            final key = '${txn.date.year}-${txn.date.month.toString().padLeft(2, '0')}';
+            final amount = txn.isExpense ? -txn.absoluteAmount : txn.absoluteAmount;
+            netByMonth[key] = (netByMonth[key] ?? 0) + amount;
           }
 
           final List<String> last6 = [];
           for (int i = 5; i >= 0; i--) {
             final dt = DateTime(now.year, now.month - i, 1);
             final key = '${dt.year}-${dt.month.toString().padLeft(2, '0')}';
-            last6.add(key);
+            return netByMonth[key] ?? 0.0;
+          }).toList();
+          double minY = monthValues.reduce(math.min);
+          double maxY = monthValues.reduce(math.max);
+          if ((maxY - minY).abs() < 10) {
+            maxY += 10;
+            minY -= 10;
+          } else {
+            final padding = (maxY - minY) * 0.15;
+            maxY += padding;
+            minY -= padding;
           }
 
           final monthValues = last6.map((k) => monthTotals[k] ?? 0.0).toList();
