@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Import for text input formatter
 import 'package:intl/intl.dart';
+import 'package:smartspend/services/transaction_summary_service.dart';
+import 'package:smartspend/ui/category_icons.dart';
 import 'package:smartspend/ui/smart_spend_theme.dart';
 // ❗️ UPDATE THIS IMPORT to match your project
 import 'package:smartspend/services/firestore_service.dart';
@@ -20,7 +22,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
   final user = FirebaseAuth.instance.currentUser;
   final FirestoreService _firestoreService = FirestoreService();
   final TransactionSummaryService _summaryService =
-      TransactionSummaryService();
+      TransactionSummaryService(firestore: FirebaseFirestore.instance);
 
   DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
 
@@ -68,26 +70,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
     }
   }
 
-  DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
-
-  String get _formattedMonthYear => DateFormat('MMMM, yyyy').format(_selectedMonth);
-
-  String get totalBudgetString => '₱0.00';
-
-  String get totalSpentString => '₱0.00';
-
-  void _goToPreviousMonth() {
-    setState(() {
-      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1);
-    });
-  }
-
-  void _goToNextMonth() {
-    setState(() {
-      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1);
-    });
-  }
-
   void _onAddBudgetPressed() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -117,68 +99,88 @@ class _BudgetScreenState extends State<BudgetScreen> {
         ),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            SmartSpendCard(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    onPressed: _goToPreviousMonth,
-                    icon: const Icon(Icons.chevron_left_rounded, color: navy),
-                  ),
-                  Column(
+        child: StreamBuilder<List<AppTransaction>>(
+          stream: _transactionsForSelectedMonth(),
+          builder: (context, snapshot) {
+            final transactions = snapshot.data ?? [];
+            final totalSpentString = _summaryService.formatCurrency(
+              _summaryService.getTotalExpense(transactions),
+            );
+
+            return Column(
+              children: [
+                SmartSpendCard(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        _formattedMonthYear,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: navy,
+                      IconButton(
+                        onPressed: _goToPreviousMonth,
+                        icon:
+                            const Icon(Icons.chevron_left_rounded, color: navy),
+                      ),
+                      Column(
+                        children: [
+                          Text(
+                            _formattedMonthYear,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: navy,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Monthly budget overview',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.black45,
+                            ),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        onPressed: _goToNextMonth,
+                        icon: const Icon(
+                            Icons.chevron_right_rounded, color: navy),
+                      ),
+                    ],
+                  ),
+                ),
+                SmartSpendCard(
+                  margin: const EdgeInsets.fromLTRB(20, 4, 20, 10),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: StreamBuilder<double>(
+                          stream: _budgetTotalStream(),
+                          builder: (context, budgetSnapshot) {
+                            final totalBudgetString =
+                                _summaryService.formatCurrency(
+                                    budgetSnapshot.data ?? 0);
+                            return _BudgetStatCard(
+                              label: 'Total Budget',
+                              amount: totalBudgetString,
+                              chipColor: primaryBlue.withOpacity(0.15),
+                            );
+                          },
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Monthly budget overview',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.black45,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _BudgetStatCard(
+                          label: 'Total Spent',
+                          amount: totalSpentString,
+                          chipColor: Colors.red.withOpacity(0.10),
                         ),
                       ),
                     ],
                   ),
-                  IconButton(
-                    onPressed: _goToNextMonth,
-                    icon: const Icon(Icons.chevron_right_rounded, color: navy),
-                  ),
-                ],
-              ),
-            ),
-            SmartSpendCard(
-              margin: const EdgeInsets.fromLTRB(20, 4, 20, 10),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _BudgetStatCard(
-                      label: 'Total Budget',
-                      amount: totalBudgetString,
-                      chipColor: primaryBlue.withOpacity(0.15),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _BudgetStatCard(
-                      label: 'Total Spent',
-                      amount: totalSpentString,
-                      chipColor: Colors.red.withOpacity(0.10),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 4),
-            Expanded(child: _buildCategoryList()),
-          ],
+                ),
+                const SizedBox(height: 4),
+                Expanded(child: _buildCategoryList()),
+              ],
+            );
+          },
         ),
       ),
       floatingActionButton: FloatingActionButton(
