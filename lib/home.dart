@@ -400,10 +400,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
-      ),
+      );
+        }
+    )
     );
   }
-
   // --- Helpers ---
 
   Widget _buildBlurCircle(Color color, double size) {
