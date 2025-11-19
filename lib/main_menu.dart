@@ -5,7 +5,7 @@ import 'budget.dart';
 import 'analytics.dart';
 import 'accounts.dart';
 import 'categories_screen.dart';
-import '../services/auth_service.dart'; // Check your path for auth service
+import 'package:smartspend/services/auth_service.dart'; // Check your path for auth service
 import 'add_transaction.dart';
 
 class MainMenuScreen extends StatefulWidget {
