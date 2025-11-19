@@ -1,5 +1,52 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+class _DefaultCategory {
+  final String id;
+  final String name;
+  final String icon;
+  final int color;
+
+  const _DefaultCategory({
+    required this.id,
+    required this.name,
+    required this.icon,
+    required this.color,
+  });
+}
+
+const List<_DefaultCategory> _defaultExpenseCategories = [
+  _DefaultCategory(
+    id: 'clothing',
+    name: 'Clothing',
+    icon: 'checkroom',
+    color: 0xFF8E24AA,
+  ),
+  _DefaultCategory(
+    id: 'shopping',
+    name: 'Shopping',
+    icon: 'shopping_bag_outlined',
+    color: 0xFFFF9800,
+  ),
+  _DefaultCategory(
+    id: 'transportation',
+    name: 'Transportation',
+    icon: 'directions_bus_filled_outlined',
+    color: 0xFF455A64,
+  ),
+  _DefaultCategory(
+    id: 'entertainment',
+    name: 'Entertainment',
+    icon: 'movie_outlined',
+    color: 0xFFE53935,
+  ),
+  _DefaultCategory(
+    id: 'bills',
+    name: 'Bills',
+    icon: 'receipt_long_outlined',
+    color: 0xFF00897B,
+  ),
+];
+
 class FirestoreService {
   FirestoreService._();
 
@@ -39,6 +86,23 @@ class FirestoreService {
     });
 
     return doc.id;
+  }
+
+  Future<void> ensureDefaultCategories({required String uid}) async {
+    for (final category in _defaultExpenseCategories) {
+      final docRef =
+          _firestore.collection('categories').doc('${uid}_${category.id}');
+      final snapshot = await docRef.get();
+      if (snapshot.exists) continue;
+      await docRef.set({
+        'name': category.name,
+        'type': 'expense',
+        'owner': uid,
+        'icon': category.icon,
+        'color': category.color,
+        'isDefault': true,
+      });
+    }
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> streamUserCategories({
@@ -130,6 +194,7 @@ class FirestoreService {
     required String name,
     required String type,
     required String iconString,
+    int? colorValue,
   }) async {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) {
@@ -143,6 +208,7 @@ class FirestoreService {
       'type': type,
       'owner': uid,
       'icon': iconString,
+      'color': colorValue ?? 0xFF2979FF,
     });
   }
 }
