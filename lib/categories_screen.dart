@@ -1,39 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-// ❗️ UPDATE THIS IMPORT to match your project
 import 'package:smartspend/services/firestore_service.dart';
-
-// --- This map holds our icon data ---
-// We map a string name to an IconData
-final Map<String, IconData> iconMap = {
-  'restaurant': Icons.restaurant,
-  'directions_car': Icons.directions_car,
-  'movie': Icons.movie,
-  'child_care': Icons.child_care,
-  'face': Icons.face,
-  'receipt': Icons.receipt,
-  'directions_car_filled': Icons.directions_car_filled,
-  'checkroom': Icons.checkroom,
-  'school': Icons.school,
-  'devices': Icons.devices,
-  'emoji_events': Icons.emoji_events,
-  'local_offer': Icons.local_offer,
-  'confirmation_number': Icons.confirmation_number,
-  'replay': Icons.replay,
-  'house': Icons.house,
-  'work': Icons.work,
-  'trending_up': Icons.trending_up,
-  'health': Icons.favorite,
-  'home': Icons.home,
-  'insurance': Icons.shield,
-  'shopping': Icons.shopping_cart,
-  'social': Icons.people,
-  'sport': Icons.sports_tennis,
-  'tax': Icons.account_balance,
-  'telephone': Icons.phone,
-  'category': Icons.category,
-};
+import 'package:smartspend/ui/category_icons.dart';
+import 'package:smartspend/ui/smart_spend_theme.dart';
 
 class CategoriesScreen extends StatefulWidget {
   const CategoriesScreen({super.key});
@@ -46,34 +16,51 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   final user = FirebaseAuth.instance.currentUser;
   final FirestoreService _firestoreService = FirestoreService();
 
-  // --- This is the new function to show the dialog ---
+  @override
+  void initState() {
+    super.initState();
+    _seedDefaults();
+  }
+
+  Future<void> _seedDefaults() async {
+    if (user == null) return;
+    await _firestoreService.ensureDefaultCategories(uid: user!.uid);
+  }
+
   void _showAddCategoryDialog() {
     final TextEditingController nameController = TextEditingController();
-    String selectedType = 'expense'; // Default to 'expense'
-    String selectedIconString = 'category'; // Default icon
+    String selectedType = 'expense';
+    String selectedIconString = 'category';
 
     showDialog(
       context: context,
       builder: (context) {
-        // Use a StatefulWidget inside the dialog to manage state
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              backgroundColor: const Color(0xFF42424A),
+              backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(18),
               ),
               title: const Text(
-                "Add new category",
-                style: TextStyle(color: Colors.white),
+                'Add new category',
+                style: TextStyle(
+                  color: navy,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // --- Type Selector (INCOME / EXPENSE) ---
-                    const Text("Type", style: TextStyle(color: Colors.white70)),
+                    const Text(
+                      'Type',
+                      style: TextStyle(
+                        color: Colors.black54,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     ToggleButtons(
                       isSelected: [
@@ -82,81 +69,63 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                       ],
                       onPressed: (index) {
                         setDialogState(() {
-                          selectedType = (index == 0) ? 'income' : 'expense';
+                          selectedType = index == 0 ? 'income' : 'expense';
                         });
                       },
-                      borderRadius: BorderRadius.circular(10),
-                      color: Colors.white,
-                      selectedColor: const Color(0xFF36363E),
-                      fillColor: Colors.white,
-                      borderColor: Colors.white54,
-                      selectedBorderColor: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      selectedColor: Colors.white,
+                      fillColor: primaryBlue,
+                      color: Colors.black54,
+                      constraints: const BoxConstraints(minHeight: 36, minWidth: 90),
                       children: const [
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text("INCOME"),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text("EXPENSE"),
-                        ),
+                        Text('Income'),
+                        Text('Expense'),
                       ],
                     ),
                     const SizedBox(height: 16),
-
-                    // --- Name Field ---
                     TextField(
                       controller: nameController,
-                      style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        labelText: "Name",
-                        labelStyle: const TextStyle(color: Colors.white70),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: const BorderSide(color: Colors.white54),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: const BorderSide(color: Colors.white),
-                          borderRadius: BorderRadius.circular(10),
+                        labelText: 'Name',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
                         ),
                       ),
                     ),
                     const SizedBox(height: 16),
-
-                    // --- Icon Grid ---
-                    const Text("Icon", style: TextStyle(color: Colors.white70)),
+                    const Text(
+                      'Icon',
+                      style: TextStyle(
+                        color: Colors.black54,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     SizedBox(
-                      height: 150, // Fixed height for the grid
-                      width: double.maxFinite,
+                      height: 160,
                       child: GridView.builder(
-                        itemCount: iconMap.length,
+                        itemCount: categoryIconMap.length,
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 6,
-                              crossAxisSpacing: 10,
-                              mainAxisSpacing: 10,
-                            ),
+                          crossAxisCount: 6,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                        ),
                         itemBuilder: (context, index) {
-                          String iconKey = iconMap.keys.elementAt(index);
-                          IconData iconData = iconMap.values.elementAt(index);
-                          bool isSelected = selectedIconString == iconKey;
-
+                          final iconKey = categoryIconMap.keys.elementAt(index);
+                          final iconData = categoryIconMap.values.elementAt(index);
+                          final isSelected = selectedIconString == iconKey;
                           return GestureDetector(
-                            onTap: () {
-                              setDialogState(() {
-                                selectedIconString = iconKey;
-                              });
-                            },
+                            onTap: () => setDialogState(() {
+                              selectedIconString = iconKey;
+                            }),
                             child: CircleAvatar(
-                              backgroundColor: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFF50505A),
+                              backgroundColor:
+                                  isSelected ? primaryBlue : lightBgTop,
                               child: Icon(
                                 iconData,
-                                color: isSelected
-                                    ? const Color(0xFF36363E)
-                                    : Colors.white,
+                                size: 18,
+                                color: isSelected ? Colors.white : navy,
                               ),
                             ),
                           );
@@ -169,21 +138,20 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text(
-                    "CANCEL",
-                    style: TextStyle(color: Colors.white70),
-                  ),
+                  child: const Text('Cancel'),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF36363E),
+                    backgroundColor: navy,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: () async {
-                    if (nameController.text.isEmpty)
-                      return; // Simple validation
-
-                    // Use the service to add the category
+                    if (nameController.text.trim().isEmpty || user == null) {
+                      return;
+                    }
                     try {
                       await _firestoreService.addCategory(
                         uid: user!.uid,
@@ -191,13 +159,12 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                         type: selectedType,
                         iconString: selectedIconString,
                       );
-                      Navigator.of(context).pop(); // Close dialog on success
+                      if (context.mounted) Navigator.of(context).pop();
                     } catch (e) {
-                      // Optional: Show error
-                      print("Failed to add category: $e");
+                      debugPrint('Failed to add category: $e');
                     }
                   },
-                  child: const Text("SAVE"),
+                  child: const Text('Save'),
                 ),
               ],
             );
@@ -211,137 +178,137 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   Widget build(BuildContext context) {
     if (user == null) {
       return const Scaffold(
-        backgroundColor: Color(0xFF36363E),
-        body: Center(
-          child: Text(
-            "Please log in...",
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
+        body: Center(child: Text('Please log in...')),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF36363E),
-      body: Column(
-        // ⬅️ NEW: We use a Column
-        children: [
-          // This makes the list take up all available space
-          Expanded(
-            child: ListView(
-              children: [
-                _buildCategoryList(title: "Income categories", type: "income"),
-                _buildCategoryList(
-                  title: "Expense categories",
-                  type: "expense",
-                ),
-              ],
-            ),
+      backgroundColor: lightBgBottom,
+      appBar: AppBar(
+        elevation: 0,
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        title: const Text(
+          'Categories',
+          style: TextStyle(
+            color: navy,
+            fontWeight: FontWeight.w700,
           ),
-
-          // --- THIS IS THE "ADD NEW CATEGORY" BUTTON ---
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.add_circle_outline),
-              label: const Text("ADD NEW CATEGORY"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF50505A),
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 50), // Full width
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+      body: SafeArea(
+        child: SmartSpendCard(
+          margin: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Expense Categories',
+                style: TextStyle(
+                  color: navy,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              onPressed: _showAddCategoryDialog, // ⬅️ Calls our new function
-            ),
+              const SizedBox(height: 12),
+              Expanded(child: _buildCategoriesGrid()),
+            ],
           ),
-        ],
+        ),
       ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: primaryBlue,
+        onPressed: _showAddCategoryDialog,
+        child: const Icon(Icons.add),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
-  Widget _buildCategoryList({required String title, required String type}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+  Widget _buildCategoriesGrid() {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _firestoreService.streamUserCategories(
+        uid: user!.uid,
+        type: 'expense',
+      ),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final docs = snapshot.data?.docs ?? [];
+        if (docs.isEmpty) {
+          return const Center(
+            child: Text(
+              'No categories found.',
+              style: TextStyle(color: Colors.black45),
             ),
+          );
+        }
+        return GridView.builder(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 3 / 2,
           ),
-          const SizedBox(height: 12),
-          StreamBuilder<QuerySnapshot>(
-            stream: _firestoreService.streamUserCategories(
-              uid: user!.uid,
-              type: type,
-            ),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return Center(
-                  child: Text(
-                    "No $type categories found.",
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                );
-              }
-              final categoryDocs = snapshot.data!.docs;
-              return Column(
-                children: categoryDocs
-                    .map((doc) => _buildCategoryRow(doc))
-                    .toList(),
-              );
-            },
+          itemCount: docs.length,
+          itemBuilder: (context, index) {
+            final data = docs[index].data();
+            return _CategoryTile(data: data);
+          },
+        );
+      },
+    );
+  }
+}
+
+class _CategoryTile extends StatelessWidget {
+  final Map<String, dynamic> data;
+
+  const _CategoryTile({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final iconString = (data['icon'] ?? 'category').toString();
+    final iconData = categoryIconMap[iconString] ?? Icons.category;
+    final colorValue = (data['color'] as int?) ?? primaryBlue.value;
+    final color = Color(colorValue);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildCategoryRow(DocumentSnapshot categoryDoc) {
-    final categoryData = categoryDoc.data() as Map<String, dynamic>;
-    final categoryName = categoryData['name'] ?? 'Unnamed';
-
-    // --- ❗️ NEW LOGIC ---
-    // We read the 'icon' string, or use a default 'category'
-    final iconString = categoryData['icon'] ?? 'category';
-    final iconData = iconMap[iconString] ?? Icons.category; // Look up the icon
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.all(12),
       child: Row(
         children: [
-          CircleAvatar(
-            backgroundColor: const Color(0xFF50505A),
-            child: Icon(
-              iconData,
-              color: Colors.white,
-            ), // Use the looked-up icon
+          Container(
+            height: 32,
+            width: 32,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(iconData, color: color, size: 20),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
-              categoryName,
+              (data['name'] ?? 'Unnamed').toString(),
               style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+                color: navy,
+                fontWeight: FontWeight.w600,
               ),
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.white70),
-            onPressed: () {
-              /* TODO: Edit/Delete */
-            },
           ),
         ],
       ),
