@@ -1,5 +1,4 @@
 import 'dart:ui'; // Required for ImageFilter
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
@@ -19,7 +18,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final user = FirebaseAuth.instance.currentUser;
   final TransactionSummaryService _summaryService =
-      TransactionSummaryService(firestore: FirebaseFirestore.instance);
+      TransactionSummaryService();
   final DateTime _currentMonth =
       DateTime(DateTime.now().year, DateTime.now().month);
   bool _isTransactionsExpanded = true;
