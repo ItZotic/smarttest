@@ -93,32 +93,32 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     const Color inactiveColor = Colors.grey;
 
     return Scaffold(
-      // 1. AppBar REMOVED here to fix the double title issue.
-      // Each screen now controls its own top area.
-      extendBody:
-          true, // Optional: Lets content go behind nav bar for a modern look
-
-      floatingActionButton: AnimatedSlide(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        offset: _fabVisible ? Offset.zero : const Offset(0, 2),
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 120),
-          opacity: _fabVisible ? 1 : 0,
-          child: FloatingActionButton(
-            backgroundColor: primaryColor,
-            shape: const CircleBorder(), // Round FAB
-            child: const Icon(Icons.add, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AddTransactionScreen()),
-              );
-            },
-          ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      extendBody: true,
+      floatingActionButton: _selectedIndex == 0
+          ? null
+          : AnimatedSlide(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              offset: _fabVisible ? Offset.zero : const Offset(0, 2),
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 120),
+                opacity: _fabVisible ? 1 : 0,
+                child: FloatingActionButton(
+                  backgroundColor: primaryColor,
+                  shape: const CircleBorder(),
+                  child: const Icon(Icons.add, color: Colors.white),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const AddTransactionScreen()),
+                    );
+                  },
+                ),
+              ),
+            ),
+      floatingActionButtonLocation:
+          _selectedIndex == 0 ? null : FloatingActionButtonLocation.endFloat,
 
       body: _pages[_selectedIndex],
 
