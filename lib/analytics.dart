@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
-import 'package:smartspend/services/transaction_summary_service.dart';
 import 'package:smartspend/ui/smart_spend_theme.dart';
 
 import 'add_transaction.dart';
@@ -59,15 +58,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final transactions = snap.data!;
-          final monthTransactions = transactions
-              .where((txn) =>
-                  txn.date.year == now.year && txn.date.month == now.month)
-              .toList();
-          final income = _summaryService.getTotalIncome(monthTransactions);
-          final expenses = _summaryService.getTotalExpense(monthTransactions);
-          final incomeString = _summaryService.formatCurrency(income);
-          final expensesString = _summaryService.formatCurrency(expenses);
+          final docs = snap.data!.docs;
+          double income = 0;
+          double expenses = 0;
+          final Map<String, double> categoryTotals = {};
+
+          final now = DateTime.now();
+          final Map<String, double> monthTotals = {};
 
           final expenseBreakdown =
               _summaryService.expenseTotalsByCategory(monthTransactions);
@@ -131,7 +128,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             final amount = txn.isExpense ? -txn.absoluteAmount : txn.absoluteAmount;
             netByMonth[key] = (netByMonth[key] ?? 0) + amount;
           }
-          final monthValues = monthLabels.map((dt) {
+
+          final List<String> last6 = [];
+          for (int i = 5; i >= 0; i--) {
+            final dt = DateTime(now.year, now.month - i, 1);
             final key = '${dt.year}-${dt.month.toString().padLeft(2, '0')}';
             return netByMonth[key] ?? 0.0;
           }).toList();
@@ -146,25 +146,47 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             minY -= padding;
           }
 
-          final donutChartWidget = PieChart(
-            PieChartData(
-              sections: pieSections.isEmpty
-                  ? [
-                      PieChartSectionData(
-                        value: 1,
-                        color: primaryBlue.withOpacity(0.2),
-                        title: '',
-                      )
-                    ]
-                  : pieSections,
-              sectionsSpace: 4,
-            ),
+          final monthValues = last6.map((k) => monthTotals[k] ?? 0.0).toList();
+
+          final pieSections = categoryTotals.entries.map((e) {
+            final val = e.value.abs();
+            return PieChartSectionData(
+              value: val,
+              color: val == 0
+                  ? Colors.grey
+                  : (e.value > 0 ? Colors.green : Colors.redAccent),
+              radius: 50,
+              title: '',
+            );
+          }).toList();
+
+          final incomeThisMonthString = '₱${income.toStringAsFixed(2)}';
+          final expensesThisMonthString = '₱${expenses.toStringAsFixed(2)}';
+
+          final donutChartWidget = PieChart(PieChartData(sections: pieSections));
+          final legendWidget = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: categoryTotals.entries.map(
+              (e) {
+                final color = e.value < 0 ? Colors.redAccent : Colors.green;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Text(
+                    '${e.key}: ₱${e.value.abs().toStringAsFixed(2)}',
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                );
+              },
+            ).toList(),
           );
 
           final lineChartWidget = LineChart(
             LineChartData(
-              minY: minY,
-              maxY: maxY,
+              minY: (monthValues.reduce((a, b) => a < b ? a : b)) * 1.1 - 10,
+              maxY: (monthValues.reduce((a, b) => a > b ? a : b)) * 1.1 + 10,
               lineBarsData: [
                 LineChartBarData(
                   spots: List.generate(
@@ -181,12 +203,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    getTitlesWidget: (value, meta) {
-                      final idx = value.toInt();
-                      if (idx < 0 || idx >= monthLabels.length) {
+                    getTitlesWidget: (v, meta) {
+                      final idx = v.toInt();
+                      if (idx < 0 || idx >= last6.length) {
                         return const SizedBox();
                       }
-                      final label = DateFormat.MMM().format(monthLabels[idx]);
+                      final key = last6[idx];
+                      final parts = key.split('-');
+                      final m = int.parse(parts[1]);
+                      final dt = DateTime(int.parse(parts[0]), m);
+                      final label = DateFormat.MMM().format(dt);
                       return Padding(
                         padding: const EdgeInsets.only(top: 8.0),
                         child: Text(label),
@@ -204,7 +230,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
           return SafeArea(
             child: SingleChildScrollView(
-              controller: widget.scrollController,
+              controller: scrollController,
               child: Column(
                 children: [
                   SmartSpendCard(
@@ -215,7 +241,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         Expanded(
                           child: _SummaryTile(
                             title: 'Income',
-                            amount: incomeString,
+                            amount: incomeThisMonthString,
                             caption: 'This month',
                             amountColor: Colors.green.shade700,
                           ),
@@ -224,7 +250,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         Expanded(
                           child: _SummaryTile(
                             title: 'Expenses',
-                            amount: expensesString,
+                            amount: expensesThisMonthString,
                             caption: 'This month',
                             amountColor: Colors.red.shade700,
                           ),
@@ -247,13 +273,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         const SizedBox(height: 12),
                         SizedBox(height: 180, child: Center(child: donutChartWidget)),
                         const SizedBox(height: 12),
-                        if (legendEntries.isEmpty)
-                          const Text(
-                            'No expenses recorded this month.',
-                            style: TextStyle(color: Colors.black45),
-                          )
-                        else
-                          Column(children: legendEntries),
+                        legendWidget,
                       ],
                     ),
                   ),
