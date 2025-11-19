@@ -34,7 +34,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final Color textDark = const Color(0xFF102027);
     final Color sheetColor = const Color(0xFF051C3F);
 
-    if (user == null) return const Center(child: Text("Please log in."));
+    if (user == null) {
+      return const Center(child: Text("Please log in."));
+    }
 
     return Scaffold(
       body: StreamBuilder<List<AppTransaction>>(
@@ -86,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withValues(alpha: 0.05),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -121,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           border: Border.all(color: Colors.white, width: 2),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 10,
                               offset: const Offset(0, 5),
                             ),
@@ -425,8 +427,8 @@ class _HomeScreenState extends State<HomeScreen> {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.white.withOpacity(0.05),
-        border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+        color: Colors.white.withValues(alpha: 0.05),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
       ),
     );
   }
@@ -448,7 +450,7 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2979FF).withOpacity(0.1),
+                  color: const Color(0xFF2979FF).withValues(alpha: 0.1),
                   blurRadius: 15,
                   offset: const Offset(0, 8),
                 ),
@@ -483,7 +485,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(icon, color: Colors.white, size: 20),
@@ -505,7 +507,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   DateFormat('MMM d • h:mm a').format(date),
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withValues(alpha: 0.5),
                     fontSize: 11,
                   ),
                 ),

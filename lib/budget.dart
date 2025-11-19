@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Import for text input formatter
 import 'package:intl/intl.dart';
@@ -415,7 +416,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   );
                   Navigator.of(context).pop();
                 } catch (e) {
-                  print("Failed to set budget: $e");
+                  debugPrint("Failed to set budget: $e");
                 }
               },
               child: const Text('Set'),

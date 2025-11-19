@@ -26,7 +26,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final user = FirebaseAuth.instance.currentUser;
 
   String get _displayAmount {
-    if (_amountText.isEmpty) return '0';
+    if (_amountText.isEmpty) {
+      return '0';
+    }
     return _amountText;
   }
 
@@ -49,7 +51,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Future<void> _saveTransaction() async {
-    if (user == null) return;
+    if (user == null) {
+      return;
+    }
 
     if (_amountText.isEmpty || double.tryParse(_amountText) == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -452,7 +456,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
+                                    color: Colors.black.withValues(alpha: 0.05),
                                     blurRadius: 4,
                                     offset: const Offset(0, 2),
                                   ),
@@ -519,11 +523,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border.all(color: const Color(0xFF2D79F6).withOpacity(0.3)),
+          border: Border.all(color: const Color(0xFF2D79F6).withValues(alpha: 0.3)),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.blue.withOpacity(0.05),
+              color: Colors.blue.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -561,7 +565,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),

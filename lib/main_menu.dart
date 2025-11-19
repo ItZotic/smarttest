@@ -27,7 +27,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   final Map<ScrollController, VoidCallback> _controllerListeners = {};
 
   void _handleScroll(ScrollController controller) {
-    if (!controller.hasClients) return;
+    if (!controller.hasClients) {
+      return;
+    }
     final direction = controller.position.userScrollDirection;
     if (direction == ScrollDirection.reverse && _fabVisible) {
       setState(() => _fabVisible = false);
