@@ -23,9 +23,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   }
 
   Future<void> _seedDefaults() async {
-    if (user == null) {
-      return;
-    }
+    if (user == null) return;
     await _firestoreService.ensureDefaultCategories(uid: user!.uid);
   }
 
@@ -274,7 +272,7 @@ class _CategoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final iconString = (data['icon'] ?? 'category').toString();
     final iconData = categoryIconMap[iconString] ?? Icons.category;
-    final colorValue = (data['color'] as int?) ?? primaryBlue.toARGB32();
+    final colorValue = (data['color'] as int?) ?? primaryBlue.value;
     final color = Color(colorValue);
 
     return Container(
@@ -283,7 +281,7 @@ class _CategoryTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -296,7 +294,7 @@ class _CategoryTile extends StatelessWidget {
             height: 32,
             width: 32,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
+              color: color.withOpacity(0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(iconData, color: color, size: 20),
