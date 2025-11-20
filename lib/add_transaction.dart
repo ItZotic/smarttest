@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 // ❗️ UPDATE THIS IMPORT to match your project name in pubspec.yaml
 import 'package:smartspend/services/firestore_service.dart';
+import 'package:smartspend/ui/category_icons.dart';
+import 'package:smartspend/ui/smart_spend_theme.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({super.key});
@@ -17,7 +19,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   // State variables
   String _categoryName = 'Food & Dining';
+  // ignore: unused_field
   String _categoryId = '';
+  // ignore: unused_field
   String _categoryIcon = 'restaurant';
 
   String _account = 'Cash';
@@ -29,8 +33,18 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   final user = FirebaseAuth.instance.currentUser;
 
+  @override
+  void initState() {
+    super.initState();
+    if (user != null) {
+      _firestoreService.ensureDefaultCategories(uid: user!.uid);
+    }
+  }
+
   String get _displayAmount {
-    if (_amountText.isEmpty) return '0';
+    if (_amountText.isEmpty) {
+      return '0';
+    }
     return _amountText;
   }
 
@@ -53,7 +67,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Future<void> _saveTransaction() async {
-    if (user == null) return;
+    if (user == null) {
+      return;
+    }
 
     if (_amountText.isEmpty || double.tryParse(_amountText) == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -152,65 +168,134 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   void _showCategorySheet() {
+    if (user == null) {
+      return;
+    }
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF051C3F), // Dark Navy
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
+        final mediaQuery = MediaQuery.of(context);
         return Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Select Category",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: _firestoreService.streamUserCategories(
-                    uid: user!.uid,
-                    type: _type.toLowerCase(),
+          padding: EdgeInsets.only(bottom: mediaQuery.viewInsets.bottom),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: navy,
+                    borderRadius: BorderRadius.circular(18),
                   ),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData)
-                      return const Center(child: CircularProgressIndicator());
-                    final docs = snapshot.data!.docs;
-                    return ListView.builder(
-                      itemCount: docs.length,
-                      itemBuilder: (context, index) {
-                        final data = docs[index].data() as Map<String, dynamic>;
-                        return ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: Colors.white10,
-                            child: Icon(Icons.category, color: Colors.white),
-                          ),
-                          title: Text(
-                            data['name'] ?? 'Unnamed',
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                          onTap: () {
-                            setState(() {
-                              _categoryName = data['name'];
-                              _categoryId = docs[index].id;
-                              _categoryIcon = data['icon'] ?? 'category';
-                            });
-                            Navigator.pop(context);
-                          },
-                        );
-                      },
-                    );
-                  },
+                  child: const Text(
+                    'Select Category',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: mediaQuery.size.height * 0.5,
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: _firestoreService.streamUserCategories(
+                      uid: user!.uid,
+                      type: _type.toLowerCase(),
+                    ),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      final docs = snapshot.data!.docs;
+                      if (docs.isEmpty) {
+                        return const Center(
+                          child: Text('No categories found.'),
+                        );
+                      }
+                      return GridView.builder(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 3.4,
+                        ),
+                        itemCount: docs.length,
+                        itemBuilder: (context, index) {
+                          final data =
+                              docs[index].data() as Map<String, dynamic>;
+                          final iconString =
+                              (data['icon'] ?? 'category').toString();
+                          final iconData =
+                              categoryIconMap[iconString] ?? Icons.category;
+                          final colorValue =
+                              (data['color'] as int?) ?? primaryBlue.toARGB32();
+                          final color = Color(colorValue);
+                          final name = (data['name'] ?? 'Unnamed').toString();
+
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _categoryName = name;
+                                _categoryId = docs[index].id;
+                                _categoryIcon = iconString;
+                              });
+                              Navigator.pop(context);
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(18),
+                                border:
+                                    Border.all(color: color.withValues(alpha: 0.2)),
+                              ),
+                              padding: const EdgeInsets.all(12),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    height: 34,
+                                    width: 34,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Icon(
+                                      iconData,
+                                      color: color,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -459,7 +544,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
+                                    color: Colors.black.withValues(alpha: 0.05),
                                     blurRadius: 4,
                                     offset: const Offset(0, 2),
                                   ),
@@ -526,11 +611,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border.all(color: const Color(0xFF2D79F6).withOpacity(0.3)),
+          border: Border.all(color: const Color(0xFF2D79F6).withValues(alpha: 0.3)),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.blue.withOpacity(0.05),
+              color: Colors.blue.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -568,7 +653,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
