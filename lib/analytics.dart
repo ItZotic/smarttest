@@ -154,7 +154,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   ? [
                       PieChartSectionData(
                         value: 1,
-                        color: primaryBlue.withOpacity(0.2),
+                        color: primaryBlue.withValues(alpha:0.2),
                         title: '',
                       )
                     ]
@@ -323,7 +323,7 @@ class _SummaryTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha:0.04),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),

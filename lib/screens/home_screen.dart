@@ -261,12 +261,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Icon logic (you can expand this map or use your helper function)
     IconData icon = Icons.category;
-    if (data['category'] == 'Food & Dining')
-      icon = Icons.restaurant;
-    else if (data['category'] == 'Transportation')
-      icon = Icons.directions_car;
-    else if (data['category'] == 'Salary')
-      icon = Icons.work;
+    if (data['category'] == 'Food & Dining'){
+      icon = Icons.restaurant; }
+    else if (data['category'] == 'Transportation') {
+      icon = Icons.directions_car; }
+    else if (data['category'] == 'Salary') {
+      icon = Icons.work; }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),

@@ -253,10 +253,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                             },
                             child: Container(
                               decoration: BoxDecoration(
-                                color: color.withOpacity(0.12),
+                                color: color.withValues(alpha:0.12),
                                 borderRadius: BorderRadius.circular(18),
                                 border:
-                                    Border.all(color: color.withOpacity(0.2)),
+                                    Border.all(color: color.withValues(alpha:0.2)),
                               ),
                               padding: const EdgeInsets.all(12),
                               child: Row(
@@ -531,8 +531,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                 firstDate: DateTime(2020),
                                 lastDate: DateTime(2030),
                               );
-                              if (picked != null)
-                                setState(() => _selectedDate = picked);
+                              if (picked != null) {
+                                setState(() => _selectedDate = picked); }
                             },
                             child: Container(
                               height: 60,
