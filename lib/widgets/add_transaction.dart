@@ -181,8 +181,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     type: _type.toLowerCase(),
                   ),
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData)
-                      return const Center(child: CircularProgressIndicator());
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator()); }
                     final docs = snapshot.data!.docs;
                     return ListView.builder(
                       itemCount: docs.length,
@@ -445,8 +445,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                 firstDate: DateTime(2020),
                                 lastDate: DateTime(2030),
                               );
-                              if (picked != null)
-                                setState(() => _selectedDate = picked);
+                              if (picked != null) {
+                                setState(() => _selectedDate = picked); }
                             },
                             child: Container(
                               height: 60,

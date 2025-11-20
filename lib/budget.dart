@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Import for text input formatter
 import 'package:intl/intl.dart';
@@ -161,7 +161,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                             return _BudgetStatCard(
                               label: 'Total Budget',
                               amount: totalBudgetString,
-                  chipColor: primaryBlue.withValues(alpha: 0.15),
+                              chipColor: primaryBlue.withValues(alpha:0.15),
                             );
                           },
                         ),
@@ -171,7 +171,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                         child: _BudgetStatCard(
                           label: 'Total Spent',
                           amount: totalSpentString,
-                  chipColor: Colors.red.withValues(alpha: 0.10),
+                          chipColor: Colors.red.withValues(alpha:0.10),
                         ),
                       ),
                     ],
@@ -268,7 +268,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: primaryBlue.withValues(alpha: 0.15),
+            backgroundColor: primaryBlue.withValues(alpha:0.15),
             child: Icon(iconData, color: primaryBlue),
           ),
           const SizedBox(width: 12),
@@ -346,7 +346,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
               Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: primaryBlue.withValues(alpha: 0.15),
+                    backgroundColor: primaryBlue.withValues(alpha:0.15),
                     child: Icon(
                       iconData,
                       color: primaryBlue,

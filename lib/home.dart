@@ -1,5 +1,4 @@
 import 'dart:ui'; // Required for ImageFilter
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
@@ -19,7 +18,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final user = FirebaseAuth.instance.currentUser;
   final TransactionSummaryService _summaryService =
-      TransactionSummaryService(firestore: FirebaseFirestore.instance);
+      TransactionSummaryService();
   final DateTime _currentMonth =
       DateTime(DateTime.now().year, DateTime.now().month);
   bool _isTransactionsExpanded = true;
@@ -63,13 +62,12 @@ class _HomeScreenState extends State<HomeScreen> {
               Positioned(
                 top: -60,
                 left: -60,
-                child: _buildBlurCircle(primaryBlue.withValues(alpha: 0.2), 300),
+                child: _buildBlurCircle(primaryBlue.withValues(alpha:0.2), 300),
               ),
               Positioned(
                 top: 200,
                 right: -80,
-                child:
-                    _buildBlurCircle(Colors.cyanAccent.withValues(alpha: 0.15), 250),
+                child: _buildBlurCircle(Colors.cyanAccent.withValues(alpha:0.15), 250),
               ),
               SafeArea(
                 bottom: false,
@@ -160,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: cardBlue2.withValues(alpha: 0.4),
+                          color: cardBlue2.withValues(alpha:0.4),
                           blurRadius: 25,
                           offset: const Offset(0, 15),
                         ),
@@ -196,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     width: 40,
                                     height: 28,
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.2),
+                                      color: Colors.white.withValues(alpha:0.2),
                                       borderRadius: BorderRadius.circular(6),
                                       border: Border.all(
                                         color: Colors.white38,
@@ -325,7 +323,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: sheetColor.withValues(alpha: 0.5),
+                    color: sheetColor.withValues(alpha:0.5),
                     blurRadius: 20,
                     offset: const Offset(0, -5),
                   ),
@@ -404,10 +402,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
-      ),
+      );
+        }
+    )
     );
   }
-
   // --- Helpers ---
 
   Widget _buildBlurCircle(Color color, double size) {

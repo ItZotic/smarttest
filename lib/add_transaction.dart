@@ -168,9 +168,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   void _showCategorySheet() {
-    if (user == null) {
-      return;
-    }
+    if (user == null) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -240,7 +238,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           final iconData =
                               categoryIconMap[iconString] ?? Icons.category;
                           final colorValue =
-                              (data['color'] as int?) ?? primaryBlue.toARGB32();
+                              (data['color'] as int?) ?? primaryBlue.value;
                           final color = Color(colorValue);
                           final name = (data['name'] ?? 'Unnamed').toString();
 
@@ -255,10 +253,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                             },
                             child: Container(
                               decoration: BoxDecoration(
-                                color: color.withValues(alpha: 0.12),
+                                color: color.withValues(alpha:0.12),
                                 borderRadius: BorderRadius.circular(18),
                                 border:
-                                    Border.all(color: color.withValues(alpha: 0.2)),
+                                    Border.all(color: color.withValues(alpha:0.2)),
                               ),
                               padding: const EdgeInsets.all(12),
                               child: Row(
@@ -533,8 +531,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                 firstDate: DateTime(2020),
                                 lastDate: DateTime(2030),
                               );
-                              if (picked != null)
-                                setState(() => _selectedDate = picked);
+                              if (picked != null) {
+                                setState(() => _selectedDate = picked); }
                             },
                             child: Container(
                               height: 60,
