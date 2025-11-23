@@ -64,76 +64,139 @@ class _AccountsScreenState extends State<AccountsScreen> {
                   ),
                   Expanded(
                     child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                      stream: _firestoreService.streamTransactions(
-                        uid: user!.uid,
-                      ),
-                      builder: (context, txSnapshot) {
-                        if (txSnapshot.connectionState ==
+                      stream: _firestoreService.streamAccounts(uid: user!.uid),
+                      builder: (context, accountSnapshot) {
+                        if (accountSnapshot.connectionState ==
                             ConnectionState.waiting) {
                           return const Center(
                             child: CircularProgressIndicator(),
                           );
                         }
 
-                        final txDocs = txSnapshot.data?.docs ?? [];
+                        final accountDocs = accountSnapshot.data?.docs ?? [];
 
-                        if (txDocs.isEmpty) {
-                          return Center(
-                            child: Text(
-                              "No accounts added yet",
-                              style: TextStyle(color: _themeService.textSub),
-                            ),
-                          );
-                        }
-
-                        final Map<String, double> accountBalances = {};
-                        double totalBalance = 0;
-
-                        for (final doc in txDocs) {
-                          final data = doc.data();
-                          final double amount =
-                              ((data['amount'] as num?)?.toDouble() ?? 0.0)
-                                  .abs();
-                          final String type =
-                              (data['type'] ?? '').toString().toLowerCase();
-                          final String accountName =
-                              (data['accountName'] ?? data['account'] ??
-                                      'Unassigned')
-                                  .toString();
-
-                          final signedAmount =
-                              type == 'expense' ? -amount : amount;
-                          accountBalances[accountName] =
-                              (accountBalances[accountName] ?? 0.0) +
-                                  signedAmount;
-                          totalBalance += signedAmount;
-                        }
-
-                        final accountEntries = accountBalances.entries.toList()
-                          ..sort((a, b) => a.key.compareTo(b.key));
-
-                        final List<MapEntry<String, double>> rows = [
-                          MapEntry('All Accounts', totalBalance),
-                          ...accountEntries,
-                        ];
-
-                        return ListView.separated(
-                          controller: widget.scrollController,
-                          padding: const EdgeInsets.all(16),
-                          itemCount: rows.length,
-                          separatorBuilder: (context, index) => const SizedBox(
-                            height: 12,
+                        return StreamBuilder<
+                            QuerySnapshot<Map<String, dynamic>>>(
+                          stream: _firestoreService.streamTransactions(
+                            uid: user!.uid,
                           ),
-                          itemBuilder: (context, index) {
-                            final entry = rows[index];
-                            final bool isAllAccounts = entry.key == 'All Accounts';
-                            return _buildAccountCard(
-                              entry.key,
-                              entry.value,
-                              isAllAccounts
-                                  ? Icons.account_balance_wallet
-                                  : _getIconForAccount(entry.key),
-                              enableDeletion: false,
+                          builder: (context, txSnapshot) {
+                            if (txSnapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
+
+                            final txDocs = txSnapshot.data?.docs ?? [];
+
+                            if (accountDocs.isEmpty && txDocs.isEmpty) {
+                              return Center(
+                                child: Text(
+                                  "No accounts added yet",
+                                  style:
+                                      TextStyle(color: _themeService.textSub),
+                                ),
+                              );
+                            }
+
+                            final Map<String, _AccountInfo> accountBalances = {};
+
+                            for (final doc in accountDocs) {
+                              final data = doc.data();
+                              final name = (data['name'] ?? 'Unnamed').toString();
+                              final type = (data['type'] ?? '').toString();
+                              final docBalance =
+                                  (data['balance'] as num?)?.toDouble() ?? 0.0;
+
+                              accountBalances[name] = _AccountInfo(
+                                balance: 0,
+                                docId: doc.id,
+                                type: type,
+                                docBalance: docBalance,
+                              );
+                            }
+
+                            double totalBalance = 0;
+
+                            for (final doc in txDocs) {
+                              final data = doc.data();
+                              final double amount =
+                                  ((data['amount'] as num?)?.toDouble() ?? 0.0)
+                                      .abs();
+                              final String type =
+                                  (data['type'] ?? '').toString().toLowerCase();
+                              final String accountName =
+                                  (data['accountName'] ?? data['account'] ??
+                                          'Unassigned')
+                                      .toString();
+
+                              final signedAmount =
+                                  type == 'expense' ? -amount : amount;
+                              totalBalance += signedAmount;
+
+                              accountBalances.update(
+                                accountName,
+                                (value) => value.copyWith(
+                                  balance: value.balance + signedAmount,
+                                  hasTransactions: true,
+                                ),
+                                ifAbsent: () => _AccountInfo(
+                                  balance: signedAmount,
+                                  docId: null,
+                                  type: accountName,
+                                  hasTransactions: true,
+                                ),
+                              );
+                            }
+
+                            // If an account has no transactions, fall back to its stored balance
+                            accountBalances.updateAll((key, value) {
+                              if (!value.hasTransactions && value.docBalance != 0) {
+                                totalBalance += value.docBalance;
+                                return value.copyWith(balance: value.docBalance);
+                              }
+                              return value;
+                            });
+
+                            final accountEntries = accountBalances.entries.toList()
+                              ..sort((a, b) => a.key.compareTo(b.key));
+
+                            final rows = [
+                              _AccountRow(
+                                name: 'All Accounts',
+                                balance: totalBalance,
+                                icon: Icons.account_balance_wallet,
+                                enableDeletion: false,
+                              ),
+                              ...accountEntries.map(
+                                (entry) => _AccountRow(
+                                  name: entry.key,
+                                  balance: entry.value.balance,
+                                  docId: entry.value.docId,
+                                  icon: _getIconForAccount(entry.value.type),
+                                ),
+                              ),
+                            ];
+
+                            return ListView.separated(
+                              controller: widget.scrollController,
+                              padding: const EdgeInsets.all(16),
+                              itemCount: rows.length,
+                              separatorBuilder: (context, index) => const SizedBox(
+                                height: 12,
+                              ),
+                              itemBuilder: (context, index) {
+                                final row = rows[index];
+
+                                return _buildAccountCard(
+                                  row.name,
+                                  row.balance,
+                                  row.icon,
+                                  docId: row.docId,
+                                  enableDeletion: row.enableDeletion,
+                                );
+                              },
                             );
                           },
                         );
@@ -495,4 +558,52 @@ class _AccountsScreenState extends State<AccountsScreen> {
       ),
     );
   }
+}
+
+class _AccountInfo {
+  final double balance;
+  final String? docId;
+  final String type;
+  final bool hasTransactions;
+  final double docBalance;
+
+  const _AccountInfo({
+    required this.balance,
+    this.docId,
+    required this.type,
+    this.hasTransactions = false,
+    this.docBalance = 0,
+  });
+
+  _AccountInfo copyWith({
+    double? balance,
+    String? docId,
+    String? type,
+    bool? hasTransactions,
+    double? docBalance,
+  }) {
+    return _AccountInfo(
+      balance: balance ?? this.balance,
+      docId: docId ?? this.docId,
+      type: type ?? this.type,
+      hasTransactions: hasTransactions ?? this.hasTransactions,
+      docBalance: docBalance ?? this.docBalance,
+    );
+  }
+}
+
+class _AccountRow {
+  final String name;
+  final double balance;
+  final IconData icon;
+  final String? docId;
+  final bool enableDeletion;
+
+  const _AccountRow({
+    required this.name,
+    required this.balance,
+    required this.icon,
+    this.docId,
+    this.enableDeletion = true,
+  });
 }

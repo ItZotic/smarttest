@@ -45,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return _firestoreService.streamTransactions(
       uid: user!.uid,
+      accountName: _selectedAccountName,
     );
   }
 
@@ -57,38 +58,40 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
+        final maxHeight = MediaQuery.of(context).size.height * 0.7;
         return SafeArea(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            height: MediaQuery.of(context).size.height * 0.6,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Text(
-                    "Select Account",
-                    style: TextStyle(
-                      color: _themeService.textMain,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Text(
+                      "Select Account",
+                      style: TextStyle(
+                        color: _themeService.textMain,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                    stream: _firestoreService.streamAccounts(uid: user!.uid),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
-                      }
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                      stream: _firestoreService.streamAccounts(uid: user!.uid),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
 
-                      final accounts = snapshot.data?.docs ?? [];
+                        final accounts = snapshot.data?.docs ?? [];
 
-                      if (accounts.isEmpty) {
-                        return ListView(
+                        return Column(
                           children: [
                             ListTile(
                               leading: CircleAvatar(
@@ -110,77 +113,66 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Navigator.pop(context);
                               },
                             ),
-                            const SizedBox(height: 12),
-                            Center(
-                              child: Text(
-                                "No accounts found",
-                                style: TextStyle(color: _themeService.textSub),
-                              ),
+                            const SizedBox(height: 8),
+                            Expanded(
+                              child: accounts.isEmpty
+                                  ? Center(
+                                      child: Text(
+                                        "No accounts found",
+                                        style:
+                                            TextStyle(color: _themeService.textSub),
+                                      ),
+                                    )
+                                  : ListView.separated(
+                                      itemCount: accounts.length,
+                                      separatorBuilder: (_, __) => const SizedBox(
+                                        height: 4,
+                                      ),
+                                      itemBuilder: (context, index) {
+                                        final account = accounts[index];
+                                        final data = account.data();
+                                        final accountName =
+                                            (data['name'] ?? 'Unnamed').toString();
+                                        final balance =
+                                            (data['balance'] as num?)?.toDouble() ??
+                                                0.0;
+
+                                        return ListTile(
+                                          leading: CircleAvatar(
+                                            backgroundColor: _themeService.primaryBlue
+                                                .withOpacity(0.1),
+                                            child: Icon(
+                                              Icons.credit_card,
+                                              color: _themeService.primaryBlue,
+                                            ),
+                                          ),
+                                          title: Text(
+                                            accountName,
+                                            style: TextStyle(
+                                                color: _themeService.textMain),
+                                          ),
+                                          subtitle: Text(
+                                            _themeService.formatCurrency(balance),
+                                            style: TextStyle(
+                                                color: _themeService.textSub),
+                                          ),
+                                          onTap: () {
+                                            setState(() {
+                                              _selectedAccountName = accountName;
+                                            });
+                                            Navigator.pop(context);
+                                          },
+                                        );
+                                      },
+                                    ),
                             ),
                           ],
                         );
-                      }
-
-                      return ListView(
-                        children: [
-                          ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor:
-                                  _themeService.primaryBlue.withOpacity(0.1),
-                              child: Icon(
-                                Icons.account_balance,
-                                color: _themeService.primaryBlue,
-                              ),
-                            ),
-                            title: Text(
-                              "All Accounts",
-                              style: TextStyle(color: _themeService.textMain),
-                            ),
-                            onTap: () {
-                              setState(() {
-                                _selectedAccountName = null;
-                              });
-                              Navigator.pop(context);
-                            },
-                          ),
-                          ...accounts.map((account) {
-                            final data = account.data();
-                            final accountName = (data['name'] ?? 'Unnamed')
-                                .toString();
-                            final balance =
-                                (data['balance'] as num?)?.toDouble() ?? 0.0;
-
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor:
-                                    _themeService.primaryBlue.withOpacity(0.1),
-                                child: Icon(
-                                  Icons.credit_card,
-                                  color: _themeService.primaryBlue,
-                                ),
-                              ),
-                              title: Text(
-                                accountName,
-                                style: TextStyle(color: _themeService.textMain),
-                              ),
-                              subtitle: Text(
-                                _themeService.formatCurrency(balance),
-                                style: TextStyle(color: _themeService.textSub),
-                              ),
-                              onTap: () {
-                                setState(() {
-                                  _selectedAccountName = accountName;
-                                });
-                                Navigator.pop(context);
-                              },
-                            );
-                          }),
-                        ],
-                      );
-                    },
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -319,24 +311,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         stream: _transactionsStream(),
                         builder: (context, snapshot) {
                           final docs = snapshot.data?.docs ?? [];
-                          final selected =
-                              _selectedAccountName?.trim().toLowerCase();
-
-                          final filteredDocs = selected == null
-                              ? docs
-                              : docs.where((doc) {
-                                  final data = doc.data();
-                                  final accName =
-                                      (data['accountName'] ?? data['account'] ??
-                                              'Unassigned')
-                                          .toString()
-                                          .trim()
-                                          .toLowerCase();
-                                  return accName == selected;
-                                }).toList();
 
                           double displayBalance = 0;
-                          for (var doc in filteredDocs) {
+                          for (var doc in docs) {
                             final data = doc.data();
                             final amt =
                                 (data['amount'] as num?)?.toDouble() ?? 0.0;
@@ -675,23 +652,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               }
 
                               final docs = snapshot.data?.docs ?? [];
-                              final selected =
-                                  _selectedAccountName?.trim().toLowerCase();
 
-                              final filteredDocs = selected == null
-                                  ? docs
-                                  : docs.where((doc) {
-                                      final data = doc.data();
-                                      final accName = (data['accountName'] ??
-                                              data['account'] ??
-                                              'Unassigned')
-                                          .toString()
-                                          .trim()
-                                          .toLowerCase();
-                                      return accName == selected;
-                                    }).toList();
-
-                              if (filteredDocs.isEmpty) {
+                              if (docs.isEmpty) {
                                 return const Center(
                                   child: Text(
                                     "No transactions found",
@@ -706,12 +668,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                   horizontal: 24,
                                   vertical: 10,
                                 ),
-                                itemCount: filteredDocs.length,
+                                itemCount: docs.length,
                                 itemBuilder: (context, index) {
                                   final data =
-                                      filteredDocs[index].data() as Map<String, dynamic>;
+                                      docs[index].data() as Map<String, dynamic>;
                                   return _buildDarkTransactionTile(
-                                    filteredDocs[index],
+                                    docs[index],
                                     data,
                                   );
                                 },

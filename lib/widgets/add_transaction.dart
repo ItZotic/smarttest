@@ -234,13 +234,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   // ---------------- Selection sheets ----------------
 
-  void _showSelectionSheet({
-    required String title,
-    required List<String> items,
-    required ValueChanged<String> onSelect,
-  }) {
+  void _showAccountSheet() {
+    if (user == null) return;
+
     final textColor = _themeService.textMain;
-    final sheetBg = _themeService.isDarkMode ? _themeService.cardBg : Colors.white;
+    final sheetBg =
+        _themeService.isDarkMode ? _themeService.cardBg : Colors.white;
     final borderColor = _themeService.primaryBlue.withValues(alpha: 0.2);
     final dividerColor = _themeService.textSub.withValues(alpha: 0.15);
     final handleColor = _themeService.textSub.withValues(alpha: 0.5);
@@ -255,10 +254,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             margin: const EdgeInsets.all(12),
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.5,
+                maxHeight: MediaQuery.of(context).size.height * 0.6,
               ),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: sheetBg,
                   border: Border.all(color: borderColor),
@@ -282,7 +282,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      title,
+                      "Select Account",
                       style: TextStyle(
                         color: textColor,
                         fontSize: 18,
@@ -291,22 +291,72 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     ),
                     const SizedBox(height: 12),
                     Expanded(
-                      child: ListView.separated(
-                        itemCount: items.length,
-                        separatorBuilder: (_, __) => Divider(
-                          height: 1,
-                          color: dividerColor,
-                        ),
-                        itemBuilder: (context, index) {
-                          final label = items[index];
-                          return ListTile(
-                            title: Text(
-                              label,
-                              style: TextStyle(color: textColor),
+                      child: StreamBuilder<
+                          QuerySnapshot<Map<String, dynamic>>>(
+                        stream: _firestoreService.streamAccounts(uid: user!.uid),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return Center(
+                              child: CircularProgressIndicator(
+                                color: _themeService.primaryBlue,
+                              ),
+                            );
+                          }
+
+                          final accounts = snapshot.data?.docs ?? [];
+
+                          if (accounts.isEmpty) {
+                            return Center(
+                              child: Text(
+                                "No accounts found",
+                                style: TextStyle(color: _themeService.textSub),
+                              ),
+                            );
+                          }
+
+                          return ListView.separated(
+                            itemCount: accounts.length,
+                            separatorBuilder: (_, __) => Divider(
+                              height: 1,
+                              color: dividerColor,
                             ),
-                            onTap: () {
-                              onSelect(label);
-                              Navigator.pop(context);
+                            itemBuilder: (context, index) {
+                              final account = accounts[index];
+                              final data = account.data();
+                              final accountName =
+                                  (data['name'] ?? 'Unnamed').toString();
+                              final accountType = (data['type'] ?? '').toString();
+
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor:
+                                      _themeService.primaryBlue.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  child: Icon(
+                                    Icons.account_balance_wallet,
+                                    color: _themeService.primaryBlue,
+                                  ),
+                                ),
+                                title: Text(
+                                  accountName,
+                                  style: TextStyle(color: textColor),
+                                ),
+                                subtitle: accountType.isEmpty
+                                    ? null
+                                    : Text(
+                                        accountType,
+                                        style:
+                                            TextStyle(color: _themeService.textSub),
+                                      ),
+                                onTap: () {
+                                  setState(() {
+                                    _selectedAccountName = accountName;
+                                  });
+                                  Navigator.pop(context);
+                                },
+                              );
                             },
                           );
                         },
@@ -576,17 +626,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                   child: _buildSelector(
                                     icon: Icons.account_balance_wallet,
                                     label: _selectedAccountName ?? 'ACCOUNT',
-                                    onTap: () => _showSelectionSheet(
-                                      title: "Select Account",
-                                      items: const [
-                                        "Cash",
-                                        "Bank",
-                                        "Savings",
-                                        "Card"
-                                      ],
-                                      onSelect: (val) => setState(
-                                          () => _selectedAccountName = val),
-                                    ),
+                                    onTap: _showAccountSheet,
                                   ),
                                 ),
                                 const SizedBox(width: 16),
